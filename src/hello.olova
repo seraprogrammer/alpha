@@ -1,0 +1,10 @@
+<script>
+  let count = 0;
+  function increment() {
+    count++;
+    document.getElementById("count").innerText = count;
+  }
+</script>
+
+<h1 style="color: red" id="count">0</h1>
+<button onclick="increment()">Increment</button>

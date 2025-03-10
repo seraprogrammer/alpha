@@ -1,0 +1,8 @@
+<script>
+  import Hello from "./hello.olova";
+</script>
+
+<div>
+  <h2>Welcome to Olova Framework!</h2>
+  <Hello />
+</div>
