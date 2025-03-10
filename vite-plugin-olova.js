@@ -34,6 +34,17 @@ export default function olovaPlugin() {
       while ((match = fnRegex.exec(scriptContent)) !== null) {
         autoBindCode += `\nwindow.${match[1]} = ${match[1]};`;
       }
+
+      // IMPORTANT: Check if the script contains a declaration of 'props'
+      // If it does, we need to modify the script to avoid conflicts
+      const hasPropsDeclaration =
+        /\blet\s+props\b|\bconst\s+props\b|\bvar\s+props\b/.test(scriptContent);
+
+      // If there's a props declaration, we'll rename it in our internal code
+      const internalPropsName = hasPropsDeclaration
+        ? "__olova_internal_props"
+        : "props";
+
       // Append the auto-binding code to the scriptContent
       scriptContent += autoBindCode;
 
@@ -46,15 +57,16 @@ export default function olovaPlugin() {
         }
       }
 
-      const mappingCode =
-        componentNames.length > 0
-          ? `const components = { ${componentNames.join(", ")} };`
-          : "const components = {};";
-
       // --- Generate the final module code ---
       const code = `
+        // Keep the original imports from the script
         ${scriptContent}
-        export default function(target) {
+        
+        // Component implementation
+        export default function(target, passedProps = {}) {
+          // Store props for access within the component
+          const ${internalPropsName} = passedProps;
+          
           // Insert component style into document head if available
           ${
             styleContent
@@ -68,27 +80,65 @@ export default function olovaPlugin() {
           
           // Create a temporary container to parse the HTML
           const temp = document.createElement('div');
-          temp.innerHTML = \`${templateContent}\`;
           
-          // Mapping for custom components
-          ${mappingCode}
+          // Process template with props interpolation
+          let processedTemplate = \`${templateContent}\`;
+          
+          // Replace {props.X} with actual values
+          for (const key in ${internalPropsName}) {
+            const regex = new RegExp('{${internalPropsName}.' + key + '}', 'g');
+            processedTemplate = processedTemplate.replace(regex, ${internalPropsName}[key]);
+          }
+          
+          // Replace {X} with actual values (for direct props access)
+          for (const key in ${internalPropsName}) {
+            const regex = new RegExp('{' + key + '}', 'g');
+            processedTemplate = processedTemplate.replace(regex, ${internalPropsName}[key]);
+          }
+          
+          temp.innerHTML = processedTemplate;
           
           // Mount custom components
-          Object.keys(components).forEach(compName => {
-            const elems = temp.querySelectorAll(compName.toLowerCase());
-            elems.forEach(el => {
+          ${componentNames
+            .map(
+              (compName) => `
+            const ${compName.toLowerCase()}Elems = temp.querySelectorAll('${compName.toLowerCase()}');
+            ${compName.toLowerCase()}Elems.forEach(el => {
+              // Collect props from attributes
+              const elementProps = {};
+              
+              // Process regular attributes as props
+              Array.from(el.attributes).forEach(attr => {
+                if (attr.name.startsWith(':')) {
+                  // Dynamic binding (evaluate the expression)
+                  const propName = attr.name.substring(1);
+                  try {
+                    // Use eval safely for expressions in the current scope
+                    elementProps[propName] = eval(attr.value);
+                  } catch (e) {
+                    console.error(\`Error evaluating prop \${propName}:\`, e);
+                    elementProps[propName] = attr.value;
+                  }
+                } else if (!attr.name.startsWith('@') && attr.name !== 'class' && attr.name !== 'style') {
+                  // Regular props (string values)
+                  elementProps[attr.name] = attr.value;
+                }
+              });
+              
               // Create a marker comment to identify where to mount
-              const marker = document.createComment(\`Mount point for \${compName}\`);
+              const marker = document.createComment(\`Mount point for ${compName}\`);
               el.parentNode.replaceChild(marker, el);
               
               // Create a fragment for the component
               const fragment = document.createDocumentFragment();
-              components[compName](fragment);
+              ${compName}(fragment, elementProps);
               
               // Replace the marker with the component content
               marker.parentNode.replaceChild(fragment, marker);
             });
-          });
+          `
+            )
+            .join("\n")}
           
           // Use DocumentFragment for better performance
           const fragment = document.createDocumentFragment();
@@ -101,6 +151,25 @@ export default function olovaPlugin() {
         }
       `;
       return { code, map: null };
+    },
+
+    // Add a virtual module resolver for component imports
+    resolveId(id) {
+      if (id === "virtual:olova-components") {
+        return id;
+      }
+      return null;
+    },
+
+    // Provide the virtual module content
+    load(id) {
+      if (id === "virtual:olova-components") {
+        return `
+          // This is a virtual module that re-exports all components
+          export {};
+        `;
+      }
+      return null;
     },
   };
 }

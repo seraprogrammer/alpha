@@ -1,8 +1,11 @@
 <script>
   import Hello from "./hello.olova";
+  import Button from "./button.olova";
 </script>
 
 <div>
-  <h2>Welcome to Olova Framework!</h2>
-  <Hello />
+  <Hello name="Static John" />
+</div>
+<div>
+  <Button />
 </div>
