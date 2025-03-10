@@ -20,7 +20,10 @@ UIs with JSX support.
 ## 📦 Installation
 
 ```bash
-# Coming soon to npm
+# Create a new project (recommended)
+npm create vilo@latest
+
+# Or install directly in an existing project
 npm install olova
 ```
 
