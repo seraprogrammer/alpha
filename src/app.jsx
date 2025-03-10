@@ -9,6 +9,7 @@ import {
   Fragment,
 } from "./core/core.js";
 import "./app.css";
+import Button from "./Components/Button.jsx";
 
 const app = () => {
   const [ftech, setFtech] = setSignal([]);
@@ -63,7 +64,8 @@ const app = () => {
   return (
     <>
       <div>
-        <h1>Todo App</h1>
+        <Button text="Click me"></Button>
+        <h1 className="check">Todo App</h1>
         <h1 ref={countRef}>{() => count()}</h1>
         <input
           ref={inputRef}

@@ -20,7 +20,10 @@ UIs with JSX support.
 ## 📦 Installation
 
 ```bash
-# Coming soon to npm
+# Create a new project (recommended)
+npm create vilo@latest
+
+# Or install directly in an existing project
 npm install olova
 ```
 
@@ -263,6 +266,54 @@ const Conditional = () => {
   );
 };
 ```
+
+### 9. Components and Props
+
+Creating and using reusable components with props:
+
+```jsx
+import { render } from "./core/core.js";
+
+// Button component with props
+const Button = ({ text, onClick }) => {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        padding: "8px 16px",
+        borderRadius: "4px",
+        border: "none",
+        backgroundColor: "#0070f3",
+        color: "white",
+        cursor: "pointer",
+      }}
+    >
+      {text}
+    </button>
+  );
+};
+
+// Using the Button component
+const App = () => {
+  return (
+    <div>
+      <h1>Component Example</h1>
+      <Button text="Click me!" onClick={() => alert("Button clicked!")} />
+      <Button
+        text="Another button"
+        onClick={() => console.log("Second button clicked")}
+      />
+    </div>
+  );
+};
+```
+
+This example shows:
+
+- How to create a reusable component with props
+- Passing different props to multiple instances
+- Handling events through props
+- Applying inline styles to components
 
 ## 🛠️ API Reference
 
